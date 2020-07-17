@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { queryCache, AnyQueryKey } from 'react-query';
 
 import { ReactComponent as WalletIcon } from 'assets/images/wallet.svg';
+import { ReactComponent as BlockedIcon } from 'assets/images/blocked.svg';
 
 import { OptionsTransaction, TradeCardPhaseProps } from 'pages/Options/types';
 import { RootState } from 'ducks/types';
@@ -27,7 +28,7 @@ import { formatCurrencyWithKey, getAddress } from 'utils/formatters';
 import { normalizeGasLimit } from 'utils/transactions';
 import { GWEI_UNIT } from 'utils/networkUtils';
 
-import { FlexDivRowCentered, GridDivCenteredCol } from 'shared/commonStyles';
+import { FlexDivRowCentered, GridDivCenteredCol, FlexDivCentered } from 'shared/commonStyles';
 
 import Card from 'components/Card';
 import { Button } from 'components/Button';
@@ -105,6 +106,7 @@ const BiddingPhaseCard: FC<BiddingPhaseCardProps> = ({
 		null
 	);
 	const [bidOrRefundForPriceTimer, setBidOrRefundForPriceTimer] = useState<number | null>(null);
+	const [withdrawalsEnabled, setWithdrawalsEnabled] = useState<boolean>(false);
 
 	const { bids, claimable } = accountMarketInfo;
 	const longPosition = {
@@ -121,6 +123,10 @@ const BiddingPhaseCard: FC<BiddingPhaseCardProps> = ({
 	const isShort = side === 'short';
 
 	useEffect(() => {
+		const init = async () => {
+			console.log(await BOMContract.refundsEnabled());
+		};
+		init();
 		return () => {
 			if (pricesAfterBidOrRefundTimer) {
 				clearTimeout(pricesAfterBidOrRefundTimer);
@@ -397,9 +403,15 @@ const BiddingPhaseCard: FC<BiddingPhaseCardProps> = ({
 				<TabButton isActive={isBid} onClick={() => handleTypeChange('bid')}>
 					{t('options.market.trade-card.bidding.bid.title')}
 				</TabButton>
-				<TabButton isActive={isRefund} onClick={() => handleTypeChange('refund')}>
-					{t('options.market.trade-card.bidding.refund.title')}
-				</TabButton>
+				{withdrawalsEnabled ? (
+					<TabButton isActive={isRefund} onClick={() => handleTypeChange('refund')}>
+						{t('options.market.trade-card.bidding.refund.title')}
+					</TabButton>
+				) : (
+					<TabDisabled>
+						{t('options.market.trade-card.bidding.refund.title')} <BlockedIcon />
+					</TabDisabled>
+				)}
 			</StyledCardHeader>
 			<StyledCardBody>
 				<CardContent>
@@ -508,6 +520,15 @@ const StyledCardHeader = styled(Card.Header)`
 `;
 
 export const TabButton = styled(Button).attrs({ size: 'sm', palette: 'tab' })``;
+
+const TabDisabled = styled(FlexDivCentered)`
+	font-size: 14px;
+	justify-content: center;
+	color: ${(props) => props.theme.colors.red};
+	svg {
+		margin-left: 5px;
+	}
+`;
 
 const WalletBalance = styled(GridDivCenteredCol)`
 	font-family: ${(props) => props.theme.fonts.medium};
